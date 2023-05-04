@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"io"
 	"io/fs"
 	"os"
@@ -8,15 +9,20 @@ import (
 	"path/filepath"
 )
 
+// Return relative dir
 func RecurseListFiles(dir string) ([]string, error) {
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, err
+	}
 	files := []string{}
 	cb := func(path string, f fs.FileInfo, err error) error {
 		if !f.IsDir() {
-			files = append(files, path)
+			files = append(files, path[len(absDir)+1:])
 		}
 		return nil
 	}
-	err := filepath.Walk(dir, cb)
+	err = filepath.Walk(absDir, cb)
 	return files, err
 }
 
@@ -36,4 +42,12 @@ func CopyFiles(dst string, src string) (int64, error) {
 		return 0, err
 	}
 	return io.Copy(dstWriter, srcReader)
+}
+
+func WriteJsonFile(path string, obj interface{}, perm os.FileMode) error {
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, bytes, perm)
 }
